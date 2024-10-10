@@ -63,7 +63,7 @@ Every time a locator is used for an action, an up-to-date DOM element is located
 
 ```java
 Locator locator = page.getByRole(AriaRole.BUTTON,
-                                 new Page.GetByRoleOptions().setName("Sign in"))
+                                 new Page.GetByRoleOptions().setName("Sign in"));
 
 locator.hover();
 locator.click();
@@ -128,6 +128,7 @@ Role locators include [buttons, checkboxes, headings, links, lists, tables, and 
 Note that role locators **do not replace** accessibility audits and conformance tests, but rather give early feedback about the ARIA guidelines.
 
 :::note[When to use role locators]
+
 We recommend prioritizing role locators to locate elements, as it is the closest way to how users and assistive technology perceive the page.
 :::
 
@@ -523,7 +524,7 @@ page.getByRole(AriaRole.LISTITEM)
         .setName("Product 2"))))
     .getByRole(AriaRole.BUTTON,
                new Page.GetByRoleOptions().setName("Add to cart"))
-    .click()
+    .click();
 ```
 
 We can also assert the product card to make sure there is only one:
@@ -533,7 +534,7 @@ assertThat(page
     .getByRole(AriaRole.LISTITEM)
     .filter(new Locator.FilterOptions()
         .setHas(page.GetByRole(AriaRole.HEADING,
-                               new Page.GetByRoleOptions().setName("Product 2"))))
+                               new Page.GetByRoleOptions().setName("Product 2")))))
     .hasCount(1);
 ```
 
@@ -546,7 +547,7 @@ assertThat(page
     .filter(new Locator.FilterOptions()
         .setHas(page.GetByRole(AriaRole.LIST)
                     .GetByRole(AriaRole.HEADING,
-                               new Page.GetByRoleOptions().setName("Product 2"))))
+                               new Page.GetByRoleOptions().setName("Product 2")))))
     .hasCount(1);
 ```
 
@@ -557,7 +558,7 @@ We can also filter by **not having** a matching element inside.
 ```java
 assertThat(page
     .getByRole(AriaRole.LISTITEM)
-    .filter(new Locator.FilterOptions().setHasNot(page.getByText("Product 2")))
+    .filter(new Locator.FilterOptions().setHasNot(page.getByText("Product 2"))))
     .hasCount(1);
 ```
 
@@ -607,6 +608,7 @@ If you'd like to target one of the two or more elements, and you don't know whic
 For example, consider a scenario where you'd like to click on a "New email" button, but sometimes a security settings dialog shows up instead. In this case, you can wait for either a "New email" button, or a dialog and act accordingly.
 
 :::note
+
 If both "New email" button and security dialog appear on screen, the "or" locator will match both of them, possibly throwing the ["strict mode violation" error](#strictness). In this case, you can use [Locator.first()](/api/class-locator.mdx#locator-first) to only match one of them.
 :::
 
@@ -622,6 +624,7 @@ newEmail.click();
 ### Matching only visible elements
 
 :::note
+
 It's usually better to find a [more reliable way](./locators.mdx#quick-guide) to uniquely identify the element instead of checking the visibility.
 :::
 
@@ -673,7 +676,7 @@ For example, consider the following DOM structure:
 Use the count assertion to ensure that the list has 3 items.
 
 ```java
-assertThat(page.getByRole(AriaRole.LISTITEM).hasCount(3);
+assertThat(page.getByRole(AriaRole.LISTITEM)).hasCount(3);
 ```
 
 ### Assert all text in a list

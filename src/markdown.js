@@ -46,11 +46,11 @@
  *    lines: string[],
  *    codeLang: string,
  *    title?: string,
+ *    highlight?: string,
  *  }} MarkdownCodeNode */
 
 /** @typedef {MarkdownBaseNode & {
  *    type: 'note',
- *    text: string,
  *    noteType: string,
  *  }} MarkdownNoteNode */
 
@@ -66,8 +66,9 @@
 /** @typedef {{
  * maxColumns?: number,
  * omitLastCR?: boolean,
- * flattenText?: boolean
- * renderCodeBlockTitlesInHeader?: boolean
+ * flattenText?: boolean,
+ * renderCodeBlockTitlesInHeader?: boolean,
+ * noteMode?: 'docusaurus' | 'compact',
  * }} RenderOptions
  */
 
@@ -165,13 +166,14 @@ function buildTree(lines) {
     // Remaining items respect indent-based nesting.
     const [, indent, content] = /** @type {string[]} */ (line.match('^([ ]*)(.*)'));
     if (content.startsWith('```')) {
-      const [codeLang, title] = parseCodeBlockMetadata(content);
+      const [codeLang, title, highlight] = parseCodeBlockMetadata(content);
       /** @type {MarkdownNode} */
       const node = {
         type: 'code',
         lines: [],
         codeLang,
         title,
+        highlight,
       };
       line = lines[++i];
       while (!line.trim().startsWith('```')) {
@@ -208,7 +210,7 @@ function buildTree(lines) {
         tokens.push(line.substring(indent.length));
         line = lines[++i];
       }
-      node.text = tokens.join('↵');
+      node.children = parse(tokens.join('\n'));
       appendNode(indent, node);
       continue;
     }
@@ -255,14 +257,18 @@ function buildTree(lines) {
 
 /**
  * @param {String} firstLine
- * @returns {[string, string|undefined]}
+ * @returns {[string, string|undefined, string|undefined]}
  */
 function parseCodeBlockMetadata(firstLine) {
   const withoutBackticks = firstLine.substring(3);
-  const match = withoutBackticks.match(/ title="(.+)"$/);
-  if (match)
-    return [withoutBackticks.substring(0, match.index), match[1]];
-  return [withoutBackticks, undefined];
+  const titleMatch = withoutBackticks.match(/ title="(.+)"/);
+  const highlightMatch = withoutBackticks.match(/\{.*\}/);
+
+  let codeLang = withoutBackticks;
+  if (titleMatch || highlightMatch)
+    codeLang = withoutBackticks.substring(0, titleMatch?.index ?? highlightMatch?.index);
+
+  return [codeLang, titleMatch?.[1], highlightMatch?.[0]];
 }
 
 /**
@@ -328,7 +334,7 @@ function innerRenderMdNode(indent, node, lastNode, result, options) {
 
   if (node.type === 'code') {
     newLine();
-    result.push(`${indent}\`\`\`${node.codeLang}${(options?.renderCodeBlockTitlesInHeader && node.title) ? ' title="' + node.title + '"' : ''}`);
+    result.push(`${indent}\`\`\`${node.codeLang}${(options?.renderCodeBlockTitlesInHeader && node.title) ? ' title="' + node.title + '"' : ''}${node.highlight ? ' ' + node.highlight : ''}`);
     if (!options?.renderCodeBlockTitlesInHeader && node.title)
       result.push(`${indent}// ${node.title}`);
     for (const line of node.lines)
@@ -340,9 +346,21 @@ function innerRenderMdNode(indent, node, lastNode, result, options) {
 
   if (node.type === 'note') {
     newLine();
-    result.push(`${indent}:::${node.noteType}`);
-    result.push(wrapText(node.text, options, indent));
-    result.push(`${indent}:::`);
+    if (options?.noteMode !== 'compact')
+      result.push(`${indent}:::${node.noteType}`);
+    const children = node.children ?? [];
+    if (options?.noteMode === 'compact') {
+      children[0] = {
+        type: 'text',
+        text: `**NOTE** ${children[0].text}`,
+      }
+    }
+    for (const child of children) {
+      innerRenderMdNode(indent, child, lastNode, result, options);
+      lastNode = child;
+    }
+    if (options?.noteMode !== 'compact')
+      result.push(`${indent}:::`);
     newLine();
     return;
   }
